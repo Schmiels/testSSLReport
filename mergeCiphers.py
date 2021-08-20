@@ -29,21 +29,6 @@ def powerset(portList):
     pSet = list(chain.from_iterable(combinations(sList, r) for r in range(len(sList) + 1)))[1:]
     return pSet
 
-def sortPortlist(portList):
-    sList = []
-    pList = []
-    for port in portList:
-        pList.append(int(port[1:]))
-    pList.sort()
-
-    while len(portList) != 0:
-        for port in portList: 
-            if int(port[1:]) == pList[0]:
-                sList.append(port)
-                portList.remove(port)
-                pList.remove(int(port[1:]))
-    return sList
-
 # Reading Data from previous output files
 # ToBeDeleted: Funktionalität in check_ciphers implementieren => lesen der Daten nicht aus Dateien sondern aus gegebenen listen/sets
 # @deprecated
@@ -82,29 +67,39 @@ def readData(inputDir):
 # Merges given data by mapping ciphers to ports to ips
 # 
 def mergeData(data):
-    for ip in data:
-        cipherList = []
-        portList = []
-        for port in data[ip]:
-            portList.append(port)
-            for cipher in data[ip][port]:
-                cipherList.append(cipher)
-        cipherList = list(dict.fromkeys(cipherList))
+    # @deprecated
+    # for ip in data:
+    #     cipherList = []
+    #     portList = []
+    #     for port in data[ip]:
+    #         portList.append(port)
+    #         for cipher in data[ip][port]:
+    #             cipherList.append(cipher)
+    #     cipherList = list(dict.fromkeys(cipherList))
         
-        #writeData(ip, portList, cipherList)
+    #     writeData(ip, portList, cipherList)
 
     for ip in data:
         portList = []
         usedCiphers = []
         for port in data[ip]:
             portList.append(port)
+        # TODO: richtige Reihenfolge für die 1er Teilmengen?
         pListPowerSet = powerset(portList)[::-1]
-        # DEBUG
-        print(pListPowerSet)
-        # Match ciphers to ports
-        for portGroup in pListPowerSet:
-            
 
+        for portGroup in pListPowerSet:
+            concatted = []
+            intersec = []
+            for port in portGroup:
+                concatted.append(data[ip][port])
+            intersec = list(set.intersection(*[set(x) for x in concatted]))
+            if len(intersec) > 0:
+                for cipher in intersec:
+                    if cipher in usedCiphers:
+                        intersec.remove(cipher)
+                    else:
+                        usedCiphers.append(cipher)
+                writeData(ip, list(portGroup), intersec)
 
     return 0
 
@@ -114,7 +109,7 @@ def mergeData(data):
 #       - portList
 #       - IPs
 def writeData(ip, ports, cipherList):
-    outputFile = "./output/gesamt.csv"
+    outputFile = "./testData/output/gesamt.csv"
     f = open(outputFile, "a")
     line = ip + ";" + ",".join(ports) + ";" + ",".join(cipherList) + "\n"
     f.write(line)
