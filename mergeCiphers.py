@@ -2,7 +2,6 @@
 #       - dict[ip][port] => set of ciphers (readData)
 # TODO: Parsen der Argumente
 
-
 # Imports
 import sys
 import os
@@ -10,7 +9,10 @@ import re
 from itertools import chain, combinations
 
 ### Helper
+
 # TODO: Was passiert, wenn Format != IP_pPORT ist?
+# @solved: Format ist default-Output
+
 # Creating a powerset
 def powerset(portList):
     # Sort given portlist
@@ -30,15 +32,13 @@ def powerset(portList):
     return pSet
 
 # Reading Data from previous output files
-# ToBeDeleted: Funktionalität in check_ciphers implementieren => lesen der Daten nicht aus Dateien sondern aus gegebenen listen/sets
-# @deprecated
 def readData(inputDir):
     data = {}
-
-    # ToBeDeleted
+    # Read all files in given directory
     for f in os.listdir(inputDir):
         ports = {}
         prefix = re.search(r"([0-9]{1,3}\.){3}[0-9]{1,3}_p[0-9]{1,5}", f)
+        # determine if ip or hostname
         if prefix == None:
             prefix = re.search(r"([a-z0-9]*\.)*[a-z]*_p[0-9]{1,5}", f)
 
@@ -50,35 +50,19 @@ def readData(inputDir):
         # TODO: Error-Handling für incorrect file name formate
         ip, port = prefix.split("_")
         ciphers = []
-        # DEBUG
-        # print(f)
-        # print(ip)
-        # print(port)
-        # print("----")
+        # build cipher list
         for line in open(inputDir + f, "r"):
             ciphers.append(line.strip())
         if str(ip) in data.keys():
             ports = data[str(ip)]
+        # build complete list
         ports[str(port)] = ciphers
         data[str(ip)] = ports
         
     return data
 
 # Merges given data by mapping ciphers to ports to ips
-# 
 def mergeData(data):
-    # @deprecated
-    # for ip in data:
-    #     cipherList = []
-    #     portList = []
-    #     for port in data[ip]:
-    #         portList.append(port)
-    #         for cipher in data[ip][port]:
-    #             cipherList.append(cipher)
-    #     cipherList = list(dict.fromkeys(cipherList))
-        
-    #     writeData(ip, portList, cipherList)
-
     for ip in data:
         portList = []
         usedCiphers = []
@@ -86,7 +70,7 @@ def mergeData(data):
             portList.append(port)
         # TODO: richtige Reihenfolge für die 1er Teilmengen?
         pListPowerSet = powerset(portList)[::-1]
-
+        # convert list into correct port-cipher mapping by filtering with given subsets
         for portGroup in pListPowerSet:
             concatted = []
             intersec = []
@@ -121,15 +105,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         inputDir = sys.argv[1]
         data = readData(inputDir)
-        #print(data['130.197.4.99'])
         merged = mergeData(data)
-        #print(merged)
     else:
         print("Invalid arguments")
-    # DEBUG
-    # dict1 = {}
-    # dict2 = {}
-    # print(len(dict2))
-    # dict2['443'] = ['123']
-    # print(len(dict2))
-    # print(dict2.keys())
