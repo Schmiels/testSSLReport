@@ -4,8 +4,6 @@ import os
 import requests
 import re
 
-# TODO: Daten zu einer IP sammeln -> für Ports zusammenführen -> alle Daten zu allen IPs in eine csv schreiben mit ip;port,port,port;cipher,cipher,cipher
-# TODO: vllt lieber sets als Listen
 # TODO: Input-directory
 # TODO: Parameter für Ausgabe von "*_secure.txt"
 # TODO: Parsen der Argumente verbessern (Exceptions?)
@@ -15,6 +13,7 @@ API_URL = "https://ciphersuite.info/api/cs/"
 DATA_PARAM = "security"
 FILTER_START_TAG = "<u>"
 FILTER_END_TAG = "</u>"
+# TODO: @tobedeleted, code entsprechend anpassen
 VERSIONS = ["SSLv2", "SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"]
 OUTPUTLOCATION = "./testData/output/"
 
@@ -22,16 +21,12 @@ OUTPUTLOCATION = "./testData/output/"
 def parseFile(fileType, fileName, dirName, versionFilter):
     # WORKAROUND
     f = open(dirName + fileName + fileType, "r")
-    # OLD
-    # f = open(fileName + fileType, "r")
-    # DEBUG
-    print(versionFilter)
+    # .html-Parser
     if fileType == ".html":
         cipherBuffer = ""
         writeToBuffer = False
         for line in f:
             # TODO: schöner machen
-            # Will only work as long as SSLv2 is listed by testssl.sh
             if versionFilter != "ALL":
                 if line.startswith(FILTER_START_TAG + versionFilter + FILTER_END_TAG):
                     writeToBuffer = True
@@ -56,38 +51,42 @@ def parseFile(fileType, fileName, dirName, versionFilter):
     f.close()
     return cipherList 
 
+# TODO: nicht mehr in Files schrieben, sondern dictionary erstellen und zurückgeben
+# @disableFileOutPut
 def evaluateCiphers(fileName, dirName, versionFilter):
     fName, fType = os.path.splitext(fileName)
     cipherList = parseFile(fType, fName, dirName, versionFilter)
     
     if len(cipherList) > 0:
-        # TODO: Schöner machen
+        # Determine if ip or hostname
         outputPrefix = re.search(r"([0-9]{1,3}\.){3}[0-9]{1,3}_p[0-9]{1,5}", fName)
-        fileNameError = False
         if outputPrefix == None:
             outputPrefix = re.search(r"([a-z0-9]*\.)*[a-z]*_p[0-9]{1,5}", fName)
-            if outputPrefix == None:
-                fileNameError = True
 
-        if fileNameError:
+        if outputPrefix == None:
             print("Unsupported file name format for: " + fileName)
             print("Processing for " + fileName + " canceled")
             return None
         else:
             outputPrefix = outputPrefix.group()
 
+        # TODO: @disableFileOutPut
         weakF = open(OUTPUTLOCATION + outputPrefix + "_weak.txt", "w")
         # TODO: enable via param 
+        # TODO: @disableFileOutPut
         # secureF = open(OUTPUTLOCATION + outputPrefix + "_secure.txt", "w")
 
+        # Check ciphers for securtiy status
         for cipher in cipherList:
             requestsUrl = API_URL + cipher + "/"
             r = requests.get(requestsUrl)
             if r.ok:
                 secVal = r.json()[cipher][DATA_PARAM]
                 if secVal == "insecure" or secVal == "weak":
+                    # TODO: @disableFileOutPut
                     weakF.write(cipher + "\n")
                 # TODO: enable via param
+                # TODO: @disableFileOutPut
                 # elif secVal == "secure" or secVal == "recommended":
                 #    secureF.write(cipher + "\n")
                 else:
@@ -96,9 +95,10 @@ def evaluateCiphers(fileName, dirName, versionFilter):
                 print("Request failed for cipher:" + cipher)
                 print(r.status_code)
                 print(r.text)
-
+        # TODO: @disableFileOutPut
         weakF.close()
         # TODO: enable via param
+        # TODO: @disableFileOutPut
         # secureF.close()
 
 ### Main
@@ -130,9 +130,11 @@ if __name__ == "__main__":
                     print("Processing: " + f)
                     evaluateCiphers(f, dirName, versionFilter)
         elif "f" in sys.argv:
-            # TODO: muss wahrscheinlich überarbeitet werden
-            fileName = sys.argv[sys.argv.index("f")+1]
-            print("Processing: " + fileName) 
-            evaluateCiphers(f, dirName, versionFilter)
+            # TODO: funktioniert atm nicht
+            print("Single file handling currently not supported!")
+            print("use d with a directory instead")
+            # fileName = sys.argv[sys.argv.index("f")+1]
+            # print("Processing: " + fileName) 
+            # evaluateCiphers(f, dirName, versionFilter)
     else:
         print("Invalid arguments")
