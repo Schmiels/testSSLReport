@@ -17,12 +17,12 @@ DATA_PARAM = "security"
 # HTML-Parser
 FILTER_START_TAG = "<u>"
 FILTER_END_TAG = "</u>"
+VERSIONS = ["SSLv2", "SSLv3", "TLSv1", "TLSv1", "TLSv1.2", "TLSv1.3"]
 
+# Storage
 DATA_STORE = {}
 
-
 ### Helper
-
 #######################
 #### ErrorHandling #### TODO: Geeignete Lib?
 #######################
@@ -30,7 +30,7 @@ DATA_STORE = {}
 #######################
 ### Powerset Helper ### powerset@mergeCiphers.py
 #######################
-def powerset(portList):
+def powerset(portList): 
     sList = []
     # Convert port format to int
     pList = []
@@ -51,13 +51,8 @@ def powerset(portList):
 #######################
 ### Zeile schreiben ### writeData@mergeCiphers.py
 #######################
-# Writes data into .csv
-# TODO: output-Parameter
-# TODO: vor/nach dem Schreiben irgendwie sortieren
-#       - portList
-#       - IPs
-def writeData(ip, ports, cipherList):
-    outputFile = "./testData/output/gesamt.csv"
+def writeData(outputDir, ip, ports, cipherList):
+    outputFile = outputDir + "gesamt.csv"
     f = open(outputFile, "a")
     line = ip + ";" + ",".join(ports) + ";" + ",".join(cipherList) + "\n"
     f.write(line)
@@ -65,23 +60,21 @@ def writeData(ip, ports, cipherList):
     return 0
 
 #######################
-##### Zeile lesen ##### readData@mergeCiphers.py
-####################### @deprecated
-
-#######################
 #### Daten mergen ##### mergeData@mergeCiphers.py
 #######################
-def mergeData():
+def mergeData(outputDir):
     for ip in DATA_STORE:
         portList = []
         usedCiphers = []
         for port in DATA_STORE[ip]:
             portList.append(port)
-        # TODO: richtige Reihenfolge für die 1er Teilmengen?
-        #   - die letzten n ports reversen? auf pListPowerSet anwenden
-        #       - smarte commands auf Liste und wieder zusammenfügen
-        #       => liste = liste[:n] + liste[n::-1]
+        # Generate the powerset of portList and sort elements with cardinality=1 in the correct order
+        # sort
+        n = len(portList)
+        i = 2**n - (n + 1)
+        # powerset
         pListPowerSet = powerset(portList)[::-1]
+        pListPowerSet = pListPowerSet[:i] + pListPowerSet[i:][::-1]
         # Convert list into correcet port-cipher mapping by filtering with given subsets
         for portSubset in pListPowerSet:
             concatted = []
@@ -95,14 +88,16 @@ def mergeData():
                         intersec.remove(cipher)
                     else:
                         usedCiphers.append(cipher)
-                writeData(ip, list(portSubset), intersec)
-
-    return 0
+                writeData(outputDir, ip, list(portSubset), intersec)
 
 
 #######################
 #### Report parsen #### parseFile@check_ciphers.py
 #######################
+# TODO: testssl.sh Output nicht immer gleich, betrifft: @PRIO
+#       - .html
+#       - .json
+#   Woran liegt das? => Informationen in README.md aufnehmen
 def parseFile(fileName, dirName, versionFilter):
     fName, fType = os.path.splitext(fileName)
     filePath = dirName + "/" + fName + fType
@@ -116,16 +111,24 @@ def parseFile(fileName, dirName, versionFilter):
         cipherBuffer = ""
         writeToBuffer = False
         for line in f:
+            line = line.strip()
             # TODO: schöner machen
             if "ALL" not in versionFilter:
                 if len(versionFilter) > 1:
-                    # TODO: mehrere Versionen @PRIO
-                    pass
-                # else:
+                    # parse for multiple versions
+                    version = re.search(r"[LST]{3}v([0-9]\.[0-9]|[0-9])", line)
+                    if version != None:
+                        version = version.group()
+                        if version in versionFilter:
+                            writeToBuffer = True
+                        elif version not in versionFilter:
+                            writeToBuffer = False
+                # parse for a single version
                 elif line.startswith(FILTER_START_TAG + versionFilter + FILTER_END_TAG):
                     writeToBuffer = True
                 elif line.startswith(FILTER_START_TAG) and not line.endswith(versionFilter + FILTER_END_TAG):
                     writeToBuffer = False
+            # parse for all versions
             elif line.startswith(FILTER_START_TAG + "SSLv2" + FILTER_END_TAG):
                 # TODO: Was ist, wenn SSLv2 nicht mehr drin steht?
                 writeToBuffer = True
@@ -142,7 +145,6 @@ def parseFile(fileName, dirName, versionFilter):
         for match in re.finditer(r"TLS_([A-Z0-9]*_)*[A-Z0-9]*", cipherBuffer):
             cipherList.append(match.group())
         
-        # NEW
         if str(ip) in DATA_STORE.keys():
             ports = DATA_STORE[str(ip)]
         ports[str(port)] = cipherList
@@ -150,10 +152,8 @@ def parseFile(fileName, dirName, versionFilter):
     # TODO: JSON-Parser
     else:
         # TODO: @errorHandling => Nicht unterstützter Datei-Typ
-        pass
-    
+        pass  
     f.close()
-    return 0
 
 #######################
 ### Ciphers checken ### evaluateCiphers@check_ciphers.py
@@ -182,13 +182,10 @@ def evaluateCiphers():
                         # TODO: @errorHandling => Request failed for cipher (r.status_code, r.text)
                         pass
 
-    # return cipherOutput
-    return 0
-
 ### Main
 if __name__ == "__main__":
     versionFilter = ""
-    outputDir = ""
+    outputDir = "./"
     inputFile = ""
     inputDir = ""
 
@@ -205,9 +202,9 @@ if __name__ == "__main__":
         print("h: Help-Output")
         print("v: SSL/TLS-Versions")
         print(" : - \"ALL\"")
-        print(" : - one or more from \"SSLv2\", \"SSLv3\", \"TLSv1.0\", \"TLSv1.1\", \"TLSv1.2\", \"TLSv1.3\"")
+        print(" : - one or more from \"SSLv2\", \"SSLv3\", \"TLSv1\", \"TLSv1.1\", \"TLSv1.2\", \"TLSv1.3\"")
         print("o: Output-Directory (current directory if empty)")
-        print("d: Input-Directory (current directory if empty)")
+        print("d: Input-Directory")
         print("f: Input-File")
     else:
         # SSL/TLS Version
@@ -221,6 +218,8 @@ if __name__ == "__main__":
         # Output-Directory
         if "o" in sys.argv:
             outputDir = sys.argv[sys.argv.index("o")+1]
+            if not outputDir.endswith("/"):
+                outputDir += "/"
             # TODO: prüfen, ob directory existiert
             # TODO: @errorHandling => Directory nicht auffindbar
         # Input-Directory
@@ -232,7 +231,7 @@ if __name__ == "__main__":
                 print("Processing: " + f)
                 parseFile(f, inputDir, versionFilter)
             evaluateCiphers()
-            mergeData()
+            mergeData(outputDir)
         # Input-File
         elif "f" in sys.argv:
             inputFile = sys.argv[sys.argv.index("f")+1]
@@ -241,8 +240,3 @@ if __name__ == "__main__":
         else:
             # TODO: @errorHandling => Keine Inputquelle angegeben
             pass
-    #########################
-    #### GENERATE OUTPUT #### main@mergeCiphers.py
-    #########################
-
-    # DEV
