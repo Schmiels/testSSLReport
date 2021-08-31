@@ -69,6 +69,9 @@ def mergeData(data):
         for port in data[ip]:
             portList.append(port)
         # TODO: richtige Reihenfolge für die 1er Teilmengen?
+        # - die letzten n ports reversen? auf pListPowerSet anwenden
+        #   - smarte commands auf liste und wieder zusammenfügen
+        #   => liste = liste[:n] + liste[n::-1]
         pListPowerSet = powerset(portList)[::-1]
         # convert list into correct port-cipher mapping by filtering with given subsets
         for portGroup in pListPowerSet:
