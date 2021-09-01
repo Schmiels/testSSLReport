@@ -1,5 +1,3 @@
-# TODO: Polished Code hier zusammenfügen
-# TODO: sauberes Error-Hanling implementieren
 # TODO: saubere Code-Doku
 # TODO: saubere CLI
 
@@ -27,9 +25,7 @@ DATA_STORE = {}
 #### ErrorHandling #### TODO: Geeignete Lib?
 #######################
 
-#######################
-### Powerset Helper ### powerset@mergeCiphers.py
-#######################
+# Generate a the powerset to a given list of ports
 def powerset(portList): 
     sList = []
     # Convert port format to int
@@ -48,9 +44,7 @@ def powerset(portList):
     return list(chain.from_iterable(combinations(sList, r) for r in range(len(sList) + 1)))[1:]
 
 
-#######################
-### Zeile schreiben ### writeData@mergeCiphers.py
-#######################
+# Write given data into a .csv
 def writeData(outputDir, ip, ports, cipherList):
     outputFile = outputDir + "gesamt.csv"
     f = open(outputFile, "a")
@@ -59,9 +53,7 @@ def writeData(outputDir, ip, ports, cipherList):
     f.close()    
     return 0
 
-#######################
-#### Daten mergen ##### mergeData@mergeCiphers.py
-#######################
+# Merge gathered data into the correct ip<->port<->cipher mapping
 def mergeData(outputDir):
     for ip in DATA_STORE:
         portList = []
@@ -90,10 +82,7 @@ def mergeData(outputDir):
                         usedCiphers.append(cipher)
                 writeData(outputDir, ip, list(portSubset), intersec)
 
-
-#######################
-#### Report parsen #### parseFile@check_ciphers.py
-#######################
+# Parse a testssl.sh report's data
 # TODO: testssl.sh Output nicht immer gleich, betrifft: @PRIO
 #       - .html
 #       - .json
@@ -135,8 +124,7 @@ def parseFile(fileName, dirName, versionFilter):
             elif line.strip() == "":
                 writeToBuffer = False
             else:
-                # TODO: @errorHandling => Fehler beim Parsen (SSL/TLS Version nicht gefunden)
-                pass
+                print("An error occurred while parsing: no matching version found (" + versionFilter + ")")
             
             if writeToBuffer:
                 cipherBuffer += line
@@ -151,15 +139,10 @@ def parseFile(fileName, dirName, versionFilter):
         DATA_STORE[str(ip)] = ports
     # TODO: JSON-Parser
     else:
-        # TODO: @errorHandling => Nicht unterstützter Datei-Typ
-        pass  
+        print("An error occurred while parsing: Unsupported file type for given input file (" + fileName + ")")
     f.close()
 
-#######################
-### Ciphers checken ### evaluateCiphers@check_ciphers.py
-#######################
-# TODO: Muss komplett umgeschrieben werden => neuer Aufbau von DATA_STORE
-# def evaluateCiphers(fileName, dirName, versionFilter):
+# Evaluate parsed ciphers by requesting the ciphersuite.info api
 def evaluateCiphers():  
     if len(DATA_STORE) > 0:      
         # Check ciphers' security status
@@ -176,11 +159,11 @@ def evaluateCiphers():
                         elif secVal == "secure" or secVal == "recommended":
                             DATA_STORE[ip][port].remove(cipher)
                         else:
-                            # TODO: @errorHandling => Unsupported security value (secVal)
-                            pass
+                            print("An error occurred while evaluating: Unknow security value returned by API (" + secVal + ")")
                     else:
-                        # TODO: @errorHandling => Request failed for cipher (r.status_code, r.text)
-                        pass
+                        print("Request failed for cipher: " + cipher)
+                        print(r.status_code)
+                        print(r.text)
 
 ### Main
 if __name__ == "__main__":
@@ -190,9 +173,6 @@ if __name__ == "__main__":
     inputDir = ""
 
     # Parse arguments
-    #########################
-    ### ARGUMENT HANDLING ### main@check_ciphers.py
-    #########################
     if "h" in sys.argv:
         # TODO: Zusatuinformationen für Format-Fehler
         print("USAGE: python3 generateReport.py [OPTIONS]")
