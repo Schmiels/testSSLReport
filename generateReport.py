@@ -1,6 +1,3 @@
-# TODO: saubere Code-Doku
-# TODO: saubere CLI
-
 # Imports
 import sys
 import os
@@ -21,10 +18,6 @@ VERSIONS = ["SSLv2", "SSLv3", "TLSv1", "TLSv1", "TLSv1.2", "TLSv1.3"]
 DATA_STORE = {}
 
 ### Helper
-#######################
-#### ErrorHandling #### TODO: Geeignete Lib?
-#######################
-
 # Generate a the powerset to a given list of ports
 def powerset(portList): 
     sList = []
@@ -89,7 +82,7 @@ def mergeData(outputDir):
 #   Woran liegt das? => Informationen in README.md aufnehmen
 def parseFile(fileName, dirName, versionFilter):
     fName, fType = os.path.splitext(fileName)
-    filePath = dirName + "/" + fName + fType
+    filePath = dirName + fName + fType
     f = open(filePath, "r")
 
     ip, port = fileName.split("-")[0].split("_")
@@ -167,56 +160,65 @@ def evaluateCiphers():
 
 ### Main
 if __name__ == "__main__":
-    versionFilter = ""
+    versionFilter = []
     outputDir = "./"
     inputFile = ""
     inputDir = ""
 
     # Parse arguments
     if "h" in sys.argv:
-        # TODO: Zusatuinformationen für Format-Fehler
+        # TODO: Zusatzinformationen für Format-Fehler
         print("USAGE: python3 generateReport.py [OPTIONS]")
         print()
         print("With OPTIONS:")
         print()
-        print("h: Help-Output")
-        print("v: SSL/TLS-Versions")
+        print("h: Help output")
+        print("v: SSL/TLS versions")
         print(" : - \"ALL\"")
         print(" : - one or more from \"SSLv2\", \"SSLv3\", \"TLSv1\", \"TLSv1.1\", \"TLSv1.2\", \"TLSv1.3\"")
-        print("o: Output-Directory (current directory if empty)")
-        print("d: Input-Directory")
-        print("f: Input-File")
+        print("o: Output directory (current directory if empty)")
+        print("d: Input directory")
+        print("f: Input file")
+        print("")
+        print("Example:")
+        print("python3 generateReport.py v SSLv2,SSLv3,TLSv1 o ./output/ d ./input/")
     else:
         # SSL/TLS Version
         if "v" in sys.argv:
-            versionFilter = sys.argv[sys.argv.index("v")+1].split(",")
-            if versionFilter not in VERSIONS:
-                # TODO: @errorHandling => ungültige SSL/TLS Version
-                pass
+            versionList = sys.argv[sys.argv.index("v")+1].split(",")
+            for version in versionList:
+                if version not in VERSIONS:
+                    print("An error occurred while parsing the arguments: Unsopported SSL/TLS Version (" + version + ")")
+                else:
+                    versionFilter.append(version)
         else:
             versionFilter = ["ALL"]
         # Output-Directory
         if "o" in sys.argv:
             outputDir = sys.argv[sys.argv.index("o")+1]
-            if not outputDir.endswith("/"):
-                outputDir += "/"
-            # TODO: prüfen, ob directory existiert
-            # TODO: @errorHandling => Directory nicht auffindbar
+            if os.path.isdir(outputDir):
+                if not outputDir.endswith("/"):
+                    outputDir += "/"
+            else:
+                print("An error occurred while parsing the arguments: Invalid output directory (" + outputDir + ")")
         # Input-Directory
         if "d" in sys.argv:
             inputDir = sys.argv[sys.argv.index("d")+1]
-            # TODO: prüfen, ob directory existiert
-            # TODO: @errorHandling => Directory nicht auffindbar
-            for f in os.listdir(inputDir):
-                print("Processing: " + f)
-                parseFile(f, inputDir, versionFilter)
-            evaluateCiphers()
-            mergeData(outputDir)
+            if os.path.isdir(inputDir):
+                if not inputDir.endswith("/"):
+                    outputDir += "/"
+                for f in os.listdir(inputDir):
+                    print("Processing: " + f)
+                    parseFile(f, inputDir, versionFilter)
+                evaluateCiphers()
+                mergeData(outputDir)
+            else:
+                print("An error occurred while parsing the arguments: Invalid output directory (" + inputDir + ")")
         # Input-File
         elif "f" in sys.argv:
             inputFile = sys.argv[sys.argv.index("f")+1]
             # TODO: prüfen, ob file existiert
             # TODO: @errorHandling => File nicht auffindbar
+            print("Parsing single files is currently not supported. Please use OPTION d instead.")
         else:
-            # TODO: @errorHandling => Keine Inputquelle angegeben
-            pass
+            print("An error occurred while parsing the arguments: No input source given")
