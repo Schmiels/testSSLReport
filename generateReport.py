@@ -78,8 +78,21 @@ def mergeData(outputDir):
 # Parse a testssl.sh report's data
 # TODO: testssl.sh Output nicht immer gleich, betrifft: @PRIO
 #       - .html
+#           - Florians Version
+#               - line.strip().startswith(version + ":")
+#               - Beispielzeile:
+#                    - `    TLSv1.2:   DHE-RSA-AES256-GCM-SHA384 DHE-RSA-AES128-GCM-SHA256 ECDHE-RSA-AES256-GCM-SHA384 ECDHE-RSA-AES128-GCM-SHA256 `
 #       - .json
-#   Woran liegt das? => Informationen in README.md aufnehmen
+#           - meine Version
+#               - "scanResult"
+#                    - "fs" hier stehen alle ciphers wobei "id" der key bzw. die Bezeichnung des feldes ist und unter "finding" der entsprechende Wert steht
+#                       - id = "cipher-VERSION_hexcode" mit VERSION = tls1_2 etc
+#                       - finding = string wie aus meiner .html version
+#           - Florians Version
+#               - einzelne blöcke
+#                   - id = "cipherorder_VERSION" mit VERSION = TLSv1_2
+#                   - "finding" = string mit leerzeichen getrennt
+# In Florians Version gibt es keine IANA-Bezeichnungen
 def parseFile(fileName, dirName, versionFilter):
     fName, fType = os.path.splitext(fileName)
     filePath = dirName + fName + fType
@@ -174,8 +187,8 @@ if __name__ == "__main__":
         print()
         print("h: Help output")
         print("v: SSL/TLS versions")
-        print(" : - \"ALL\"")
-        print(" : - one or more from \"SSLv2\", \"SSLv3\", \"TLSv1\", \"TLSv1.1\", \"TLSv1.2\", \"TLSv1.3\"")
+        print("   - \"ALL\"")
+        print("   - one or more from \"SSLv2\", \"SSLv3\", \"TLSv1\", \"TLSv1.1\", \"TLSv1.2\", \"TLSv1.3\"")
         print("o: Output directory (current directory if empty)")
         print("d: Input directory")
         print("f: Input file")
