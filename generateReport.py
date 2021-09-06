@@ -36,6 +36,9 @@ def powerset(portList):
     # Generate powerset
     return list(chain.from_iterable(combinations(sList, r) for r in range(len(sList) + 1)))[1:]
 
+# Parsing a given .html-file 
+def parseHTML():
+    pass
 
 # Write given data into a .csv
 def writeData(outputDir, ip, ports, cipherList):
