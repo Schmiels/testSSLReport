@@ -1,5 +1,7 @@
 # testSSLReport
 
+Python script for parsing and evaluating a server's default ciphers from given testssl.sh reports.
+
 ## USAGE
 python3 generateReport.py \[OPTIONS\]
 
